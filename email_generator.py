@@ -253,18 +253,21 @@ def main():
         print(f"Accessing worksheet: {config['master_sheet_tab']}...")
         worksheet = sheet.worksheet(config['master_sheet_tab'])
         
-        # Read the first 5 rows from the sheet
-        # Assuming the first row contains headers and subsequent rows contain data
-        print("Reading first 5 rows from sheet...")
-        rows = worksheet.get_all_values()[:5]  # Get first 5 rows
+        # Read rows from the sheet
+        # Skip header row (index 0), read next 5 data rows
+        print("Reading first 5 data rows from sheet (skipping header)...")
+        all_rows = worksheet.get_all_values()
         
-        if len(rows) < 2:
+        if len(all_rows) < 2:
             print("Warning: Sheet appears to be empty or only contains headers.")
             return
         
         # Extract headers from first row
-        headers = rows[0]
+        headers = all_rows[0]
         print(f"Found columns: {', '.join(headers)}")
+        
+        # Skip header row (index 0), read next 5 data rows (indices 1-5)
+        rows = all_rows[1:6]
         
         # Try to find the name column (common variations)
         name_column_index = None
@@ -279,12 +282,12 @@ def main():
             print("Warning: Could not find a 'name' column. Using first column as name.")
             name_column_index = 0
         
-        # Process each data row (skip header row)
+        # Process each data row (header already skipped)
         print("\n" + "="*60)
         print("Generating form URLs for each person:")
         print("="*60)
         
-        for i, row in enumerate(rows[1:], start=1):  # Skip header row
+        for i, row in enumerate(rows, start=1):  # Process data rows (header already skipped)
             try:
                 # Extract name from the row, handling missing columns gracefully
                 if name_column_index < len(row):
