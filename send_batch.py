@@ -42,6 +42,11 @@ def main():
         default=50,
         help='Number of emails to send in this batch (default: 50)'
     )
+    parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Run in dry-run mode (no emails sent, no sheet updates)'
+    )
     args = parser.parse_args()
     batch_size = args.size
     
@@ -66,11 +71,6 @@ def main():
         
         load_dotenv()
         gmail_app_password = os.getenv('GMAIL_APP_PASSWORD')
-        
-        # Debug output to verify password loading
-        print(f"Debug - Password loaded: {'Yes' if gmail_app_password else 'No'}")
-        print(f"Debug - Password length: {len(gmail_app_password) if gmail_app_password else 0}")
-        print(f"Debug - Sender email: {config['sender_email']}")
         
         if not gmail_app_password:
             raise ValueError(
@@ -161,6 +161,16 @@ def main():
             print("No rows to process. All emails have been sent or no valid rows found.")
             return
         
+        # Confirmation prompt (if not dry_run)
+        if not args.dry_run:
+            print()
+            print("="*60)
+            confirmation = input(f"Ready to send {len(rows_to_process)} emails. Continue? (yes/no): ")
+            if confirmation.lower() not in ['y', 'yes']:
+                print("Cancelled by user.")
+                return
+            print()
+        
         # Initialize counters
         sent_count = 0
         failed_count = 0
@@ -192,8 +202,9 @@ def main():
                     print(f"Row {row_index} ({name}): Missing email column, skipping...")
                     failed_count += 1
                     # Update status to indicate missing email
-                    status_cell = f'E{row_index}'
-                    worksheet.update_acell(status_cell, f"Failed - Missing email address")
+                    if not args.dry_run:
+                        status_cell = f'E{row_index}'
+                        worksheet.update_acell(status_cell, f"Failed - Missing email address")
                     continue
                 
                 email_address = str(row[EMAIL_COLUMN]).strip() if len(row) > EMAIL_COLUMN else ""
@@ -202,8 +213,9 @@ def main():
                     print(f"Row {row_index} ({name}): Empty email field, skipping...")
                     failed_count += 1
                     # Update status to indicate missing email
-                    status_cell = f'E{row_index}'
-                    worksheet.update_acell(status_cell, f"Failed - Empty email address")
+                    if not args.dry_run:
+                        status_cell = f'E{row_index}'
+                        worksheet.update_acell(status_cell, f"Failed - Empty email address")
                     continue
                 
                 # Validate email format (basic check)
@@ -211,8 +223,9 @@ def main():
                     print(f"Row {row_index} ({name}): Invalid email format ({email_address}), skipping...")
                     failed_count += 1
                     # Update status to indicate invalid email
-                    status_cell = f'E{row_index}'
-                    worksheet.update_acell(status_cell, f"Failed - Invalid email format")
+                    if not args.dry_run:
+                        status_cell = f'E{row_index}'
+                        worksheet.update_acell(status_cell, f"Failed - Invalid email format")
                     continue
                 
                 print(f"Sending to: {name} ({email_address})...", end=' ', flush=True)
@@ -244,22 +257,27 @@ def main():
                 
                 # Send email via Gmail SMTP
                 try:
-                    # Connect to Gmail SMTP server
-                    server = smtplib.SMTP('smtp.gmail.com', 587)
-                    server.starttls()  # Enable TLS encryption
-                    server.login(config['sender_email'], gmail_app_password)
-                    server.send_message(msg)
-                    server.quit()
-                    
-                    # Update Google Sheet: Mark as Sent
-                    status_cell = f'E{row_index}'
-                    sentdate_cell = f'F{row_index}'
-                    
-                    worksheet.update_acell(status_cell, 'Sent')
-                    worksheet.update_acell(sentdate_cell, today_date)
-                    
-                    print("✓ Sent successfully")
-                    sent_count += 1
+                    if args.dry_run:
+                        print("  [DRY RUN] Would send email (skipped)")
+                        # Simulate success for dry run
+                        sent_count += 1
+                    else:
+                        # Connect to Gmail SMTP server
+                        server = smtplib.SMTP('smtp.gmail.com', 587)
+                        server.starttls()  # Enable TLS encryption
+                        server.login(config['sender_email'], gmail_app_password)
+                        server.send_message(msg)
+                        server.quit()
+                        
+                        # Update Google Sheet: Mark as Sent
+                        status_cell = f'E{row_index}'
+                        sentdate_cell = f'F{row_index}'
+                        
+                        worksheet.update_acell(status_cell, 'Sent')
+                        worksheet.update_acell(sentdate_cell, today_date)
+                        
+                        print("✓ Sent successfully")
+                        sent_count += 1
                     
                 except smtplib.SMTPAuthenticationError as e:
                     error_msg = f"SMTP Authentication failed: {str(e)}"
@@ -294,11 +312,12 @@ def main():
                 failed_count += 1
                 
                 # Try to update status if possible
-                try:
-                    status_cell = f'E{row_index}'
-                    worksheet.update_acell(status_cell, f"Failed - Processing error: {str(e)}")
-                except:
-                    pass  # If we can't update, continue anyway
+                if not args.dry_run:
+                    try:
+                        status_cell = f'E{row_index}'
+                        worksheet.update_acell(status_cell, f"Failed - Processing error: {str(e)}")
+                    except:
+                        pass  # If we can't update, continue anyway
                 continue
         
         # Print final summary

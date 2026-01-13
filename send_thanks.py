@@ -160,6 +160,11 @@ def main():
         default=None,
         help='Number of thank you emails to send (default: all responders who need thank yous)'
     )
+    parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Run in dry-run mode (no emails sent, no sheet updates)'
+    )
     args = parser.parse_args()
     batch_size = args.size
     
@@ -321,6 +326,16 @@ def main():
             print(f"Processing all {len(people_to_process)} thank yous.")
         print()
         
+        # Confirmation prompt (if not dry_run)
+        if not args.dry_run:
+            print()
+            print("="*60)
+            confirmation = input(f"Ready to send {len(people_to_process)} thank you emails. Continue? (yes/no): ")
+            if confirmation.lower() not in ['y', 'yes']:
+                print("Cancelled by user.")
+                return
+            print()
+        
         # Initialize counters
         sent_count = 0
         failed_count = 0
@@ -366,19 +381,24 @@ def main():
                 
                 # Send email via Gmail SMTP
                 try:
-                    # Connect to Gmail SMTP server
-                    server = smtplib.SMTP('smtp.gmail.com', 587)
-                    server.starttls()  # Enable TLS encryption
-                    server.login(config['sender_email'], gmail_app_password)
-                    server.send_message(msg)
-                    server.quit()
-                    
-                    # Update Google Sheet: Mark ThankYouSent with today's date
-                    thankyousent_cell = f'H{row_index}'
-                    master_worksheet.update_acell(thankyousent_cell, today_date)
-                    
-                    print("✓ Sent")
-                    sent_count += 1
+                    if args.dry_run:
+                        print("  [DRY RUN] Would send email (skipped)")
+                        # Simulate success for dry run
+                        sent_count += 1
+                    else:
+                        # Connect to Gmail SMTP server
+                        server = smtplib.SMTP('smtp.gmail.com', 587)
+                        server.starttls()  # Enable TLS encryption
+                        server.login(config['sender_email'], gmail_app_password)
+                        server.send_message(msg)
+                        server.quit()
+                        
+                        # Update Google Sheet: Mark ThankYouSent with today's date
+                        thankyousent_cell = f'H{row_index}'
+                        master_worksheet.update_acell(thankyousent_cell, today_date)
+                        
+                        print("✓ Sent")
+                        sent_count += 1
                     
                 except smtplib.SMTPAuthenticationError as e:
                     error_msg = f"SMTP Authentication failed: {str(e)}"

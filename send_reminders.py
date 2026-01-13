@@ -136,6 +136,11 @@ def main():
         default=None,
         help='Number of reminder emails to send (default: all non-responders)'
     )
+    parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Run in dry-run mode (no emails sent, no sheet updates)'
+    )
     args = parser.parse_args()
     batch_size = args.size
     
@@ -153,9 +158,6 @@ def main():
         print("Loading configuration...")
         config = load_config()
         print("Configuration loaded successfully.")
-        
-        # Debug output to verify config value
-        print(f"Debug - responses_sheet_tab from config: '{config['responses_sheet_tab']}'")
         
         # Load environment variables from .env file
         print("Loading environment variables...")
@@ -252,8 +254,6 @@ def main():
                             responder_names.add(name.lower())
             
             print(f"Found {len(responder_names)} unique responders in responses sheet.")
-            # Debug output to show responder names
-            print(f"Debug - Responder names found: {responder_names}")
         else:
             print("No responses sheet found - all people with Status='Sent' are non-responders.")
         
@@ -295,10 +295,7 @@ def main():
             # Check if name is in responder_names set (case-insensitive comparison)
             # Normalize name the same way as when building responder_names (name is already stripped, just lowercase)
             name_lower = name.lower()
-            print(f"Debug - Checking name: '{name}' (lowercase: '{name_lower}')")
-            print(f"Debug - Name in responder_names: {name_lower in responder_names}")
             if name_lower in responder_names:
-                print(f"Debug - Skipping {name} - already responded")
                 continue  # Skip if they already responded
             
             # Check ReminderSent column (index 6, column G) - must be empty
@@ -328,6 +325,16 @@ def main():
             rows_to_process = non_responders
             print(f"Processing all {len(rows_to_process)} reminders.")
         print()
+        
+        # Confirmation prompt (if not dry_run)
+        if not args.dry_run:
+            print()
+            print("="*60)
+            confirmation = input(f"Ready to send {len(rows_to_process)} reminder emails. Continue? (yes/no): ")
+            if confirmation.lower() not in ['y', 'yes']:
+                print("Cancelled by user.")
+                return
+            print()
         
         # Initialize counters
         sent_count = 0
@@ -402,19 +409,24 @@ def main():
                 
                 # Send email via Gmail SMTP
                 try:
-                    # Connect to Gmail SMTP server
-                    server = smtplib.SMTP('smtp.gmail.com', 587)
-                    server.starttls()  # Enable TLS encryption
-                    server.login(config['sender_email'], gmail_app_password)
-                    server.send_message(msg)
-                    server.quit()
-                    
-                    # Update Google Sheet: Mark ReminderSent with today's date
-                    remindersent_cell = f'G{row_index}'
-                    master_worksheet.update_acell(remindersent_cell, today_date)
-                    
-                    print("✓ Sent")
-                    sent_count += 1
+                    if args.dry_run:
+                        print("  [DRY RUN] Would send email (skipped)")
+                        # Simulate success for dry run
+                        sent_count += 1
+                    else:
+                        # Connect to Gmail SMTP server
+                        server = smtplib.SMTP('smtp.gmail.com', 587)
+                        server.starttls()  # Enable TLS encryption
+                        server.login(config['sender_email'], gmail_app_password)
+                        server.send_message(msg)
+                        server.quit()
+                        
+                        # Update Google Sheet: Mark ReminderSent with today's date
+                        remindersent_cell = f'G{row_index}'
+                        master_worksheet.update_acell(remindersent_cell, today_date)
+                        
+                        print("✓ Sent")
+                        sent_count += 1
                     
                 except smtplib.SMTPAuthenticationError as e:
                     error_msg = f"SMTP Authentication failed: {str(e)}"
