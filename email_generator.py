@@ -84,7 +84,7 @@ def create_email_body(name, form_url, grant_deadline, image_url):
     
     Generates a mobile-responsive HTML email template with:
     - Personalized greeting
-    - Placeholder paragraphs for grant information
+    - Grant information about Historic Holliday Park alleys
     - Inline image display
     - Call-to-action button linking to the form
     - Deadline urgency message
@@ -100,8 +100,7 @@ def create_email_body(name, form_url, grant_deadline, image_url):
     """
     # HTML email template with inline CSS for email client compatibility
     # Using inline styles ensures better rendering across different email clients
-    email_html = f"""
-<!DOCTYPE html>
+    email_html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -114,9 +113,9 @@ def create_email_body(name, form_url, grant_deadline, image_url):
         <tr>
             <td align="center" style="padding: 20px 0;">
                 <!-- Email content container -->
-                <table role="presentation" width="600" cellpadding="0" cellspacing="0" 
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0"
                        style="background-color: #ffffff; border-radius: 8px; max-width: 100%;">
-                    
+
                     <!-- Header section -->
                     <tr>
                         <td style="padding: 30px 30px 20px 30px;">
@@ -125,41 +124,76 @@ def create_email_body(name, form_url, grant_deadline, image_url):
                             </h1>
                         </td>
                     </tr>
-                    
+
                     <!-- Content section -->
                     <tr>
                         <td style="padding: 0 30px 20px 30px;">
-                            <!-- First paragraph placeholder -->
+                            <!-- Opening paragraph -->
                             <p style="margin: 0 0 15px 0; color: #555555; font-size: 16px; line-height: 1.6;">
-                                [GRANT_PARAGRAPH_1]
+                                As a fellow resident of Historic Holliday Park, you know we have a problem: <strong>our alleys are falling apart.</strong>
                             </p>
-                            
-                            <!-- Second paragraph placeholder -->
+
+                            <!-- Problems list -->
+                            <p style="margin: 0 0 5px 0; color: #555555; font-size: 16px; line-height: 1.6;">
+                                <strong>What's Wrong:</strong>
+                            </p>
+                            <ul style="margin: 0 0 15px 0; padding-left: 20px; color: #555555; font-size: 16px; line-height: 1.6;">
+                                <li style="margin-bottom: 5px;">Deep potholes damaging vehicles</li>
+                                <li style="margin-bottom: 5px;">Poor drainage causing flooding</li>
+                                <li style="margin-bottom: 5px;">Unsafe surfaces blocking garbage trucks, emergency vehicles, and access to our garages</li>
+                            </ul>
+
+                            <!-- Solution paragraph -->
                             <p style="margin: 0 0 15px 0; color: #555555; font-size: 16px; line-height: 1.6;">
-                                [GRANT_PARAGRAPH_2]
+                                <strong>The Solution:</strong><br>
+                                The Historic Holliday Park NIA is applying for a <strong>2026 Topeka DREAMS Grant</strong> to fully reconstruct three critical alleys between Fillmore & Western.
                             </p>
-                            
+
+                            <!-- Value callout -->
+                            <p style="margin: 0 0 15px 0; color: #555555; font-size: 16px; line-height: 1.6;">
+                                <strong>Total Value: $783,000</strong> | <strong>Cost to You: $0</strong>
+                            </p>
+
+                            <!-- Track record -->
+                            <p style="margin: 0 0 5px 0; color: #555555; font-size: 16px; line-height: 1.6;">
+                                <strong>Our Track Record:</strong>
+                            </p>
+                            <ul style="margin: 0 0 15px 0; padding-left: 20px; color: #555555; font-size: 16px; line-height: 1.6;">
+                                <li style="margin-bottom: 5px;"><strong>2023:</strong> Strong community support → $1.2M grant won (construction starts early 2026)</li>
+                                <li style="margin-bottom: 5px;"><strong>2024:</strong> Low engagement → $330K proposal withdrawn</li>
+                            </ul>
+
                             <!-- Inline image with responsive styling -->
-                            <!-- Using table for image ensures better email client compatibility -->
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" 
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
                                    style="margin: 20px 0;">
                                 <tr>
                                     <td align="center">
-                                        <img src="{image_url}" 
-                                             alt="Grant Information" 
+                                        <img src="{image_url}"
+                                             alt="Grant Information"
                                              style="max-width: 100%; height: auto; border-radius: 4px; display: block;"
                                              width="540">
                                     </td>
                                 </tr>
                             </table>
-                            
-                            <!-- Third paragraph placeholder -->
+
+                            <!-- Why this matters -->
+                            <p style="margin: 0 0 15px 0; color: #555555; font-size: 16px; line-height: 1.6;">
+                                <strong>Why This Matters:</strong><br>
+                                Grant committees evaluate one critical factor: <strong>proven neighborhood backing.</strong>
+                            </p>
+
+                            <!-- Call to action paragraph -->
+                            <p style="margin: 0 0 15px 0; color: #555555; font-size: 16px; line-height: 1.6;">
+                                Your 10-second endorsement could mean the difference between fixing these alleys in 2026 or waiting years while conditions worsen.
+                            </p>
+
+                            <!-- Closing -->
                             <p style="margin: 0 0 20px 0; color: #555555; font-size: 16px; line-height: 1.6;">
-                                [GRANT_PARAGRAPH_3]
+                                <strong>Help us win this for our neighborhood.</strong>
                             </p>
                         </td>
                     </tr>
-                    
+
                     <!-- Call-to-action button section -->
                     <tr>
                         <td align="center" style="padding: 0 30px 30px 30px;">
@@ -167,8 +201,8 @@ def create_email_body(name, form_url, grant_deadline, image_url):
                             <table role="presentation" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td align="center" style="background-color: #007bff; border-radius: 5px;">
-                                        <a href="{form_url}" 
-                                           style="display: inline-block; padding: 14px 30px; color: #ffffff; 
+                                        <a href="{form_url}"
+                                           style="display: inline-block; padding: 14px 30px; color: #ffffff;
                                                   text-decoration: none; font-size: 16px; font-weight: bold;
                                                   border-radius: 5px;">
                                             Complete Your Response
@@ -178,7 +212,7 @@ def create_email_body(name, form_url, grant_deadline, image_url):
                             </table>
                         </td>
                     </tr>
-                    
+
                     <!-- Deadline urgency message -->
                     <tr>
                         <td style="padding: 0 30px 30px 30px;">
@@ -187,7 +221,7 @@ def create_email_body(name, form_url, grant_deadline, image_url):
                             </p>
                         </td>
                     </tr>
-                    
+
                 </table>
             </td>
         </tr>
@@ -346,4 +380,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
