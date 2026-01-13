@@ -10,6 +10,22 @@ Email campaign system for neighborhood grant support collection.
 - Personalized thank you emails
 - Status tracking in Google Sheets
 
+## Quick Start
+```bash
+# 1. Activate environment
+.venv\Scripts\Activate.ps1  # Windows
+# or
+source .venv/bin/activate   # Mac/Linux
+
+# 2. Test with dry-run
+python send_batch.py --size 5 --dry-run
+
+# 3. Send for real
+python send_batch.py --size 5
+
+# See USAGE.md for complete workflow and troubleshooting
+```
+
 ## Setup
 
 ### Prerequisites
