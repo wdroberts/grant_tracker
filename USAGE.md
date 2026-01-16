@@ -87,6 +87,27 @@ python send_batch.py --size 5
 
 **Congratulations!** You've sent your first batch of emails! 🎉
 
+## Pre-Flight Check
+
+Before sending any campaign, always validate your email list:
+
+```bash
+# Validate email addresses
+python validate_emails.py
+
+# Or with DNS checking (slower but thorough)
+python validate_emails.py --check-dns
+```
+
+This checks for:
+- Invalid email formats
+- Missing email addresses
+- Duplicate entries
+- Suspicious test patterns
+- (Optional) Domain existence via DNS
+
+Fix any issues in your Google Sheet before sending.
+
 ## Daily Commands
 
 ### Send Initial Campaign
