@@ -26,6 +26,98 @@ python send_batch.py --size 5
 # See USAGE.md for complete workflow and troubleshooting
 ```
 
+## How It Works
+
+Think of Grant Tracker like an automated postal mail campaign, but for email. Instead of manually writing and sending hundreds of emails, the system does it for you while keeping track of everything in a Google Sheet.
+
+### The Overall Workflow
+
+1. **You prepare your list** - Put names and emails in a Google Sheet
+2. **System sends emails** - The script reads your list and sends personalized emails
+3. **People respond** - They click a link that takes them to a Google Form (with their name already filled in!)
+4. **System tracks responses** - Responses automatically appear in your Google Sheet
+5. **You send reminders** - After a few days, remind people who haven't responded yet
+6. **You thank responders** - Send personalized thank you emails to everyone who responded
+
+### What Each Script Does
+
+**send_batch.py** - The Initial Campaign
+- **When to use:** Start of your campaign, when you want to reach everyone
+- **What it does:** Reads your master list, creates personalized emails with form links, sends them via Gmail, and marks each person as "Sent" in your sheet
+- **Think of it as:** The mail carrier delivering your first batch of letters
+
+**send_reminders.py** - The Follow-Up
+- **When to use:** 3-7 days after initial send, for people who haven't responded
+- **What it does:** Compares your master list with responses, finds people who got the email but didn't respond, sends them a shorter reminder email
+- **Think of it as:** A friendly "did you get our letter?" follow-up
+
+**send_thanks.py** - The Gratitude
+- **When to use:** After people respond, to thank them for their time
+- **What it does:** Finds everyone who responded, matches them to your master list, sends personalized thank you based on their response (Yes/No)
+- **Think of it as:** Sending thank you cards to everyone who replied
+
+### How Google Sheets Tracks Everything
+
+Your Google Sheet is like a master checklist that the system updates automatically:
+
+- **Status column:** Shows "Sent" when an email was successfully sent
+- **SentDate column:** Records the date the email was sent
+- **Form Responses tab:** Automatically collects all responses from your Google Form
+- **ReminderSent column:** Records when reminder emails were sent
+- **ThankYouSent column:** Records when thank you emails were sent
+
+The system reads and writes to this sheet to know who needs what, avoiding duplicates and keeping everything organized.
+
+### Common Terminology
+
+- **Dry-run:** A test mode where the script shows you what it WOULD do without actually sending emails or updating sheets. Like a fire drill - practice without the real thing.
+- **Batch:** A group of emails sent together. You can send to everyone at once or in smaller batches (e.g., 50 at a time).
+- **Pre-fill:** When someone clicks the link in their email, the Google Form automatically fills in their name so they don't have to type it.
+- **Service Account:** A special Google account (like a robot assistant) that can read and write to your Google Sheet automatically.
+- **App Password:** A special password for Gmail that lets programs send emails securely (more secure than your regular password).
+
+## Understanding the System
+
+### What Happens When You Send an Email (Step by Step)
+
+1. **You run the script** - Type `python send_batch.py --size 50`
+2. **Script connects to Google Sheets** - Uses the service account to read your master list
+3. **Script finds people to email** - Looks for rows where Status is empty (not sent yet)
+4. **Script creates personalized email** - For each person, it:
+   - Takes their name from the sheet
+   - Creates a special link to your Google Form with their name pre-filled
+   - Builds a beautiful HTML email with their name, the form link, and your message
+5. **Script sends via Gmail** - Connects to Gmail, sends the email
+6. **Script updates the sheet** - Marks Status as "Sent" and records today's date in SentDate
+7. **You see the results** - Script prints a summary: "Sent: 50, Failed: 0"
+
+### How Responses Are Captured Automatically
+
+When someone clicks the link in their email:
+1. **Google Form opens** - Their name is already filled in (that's the "pre-fill" magic!)
+2. **They answer the question** - Usually "Yes", "No", or "Other"
+3. **They submit the form** - Google automatically saves their response
+4. **Response appears in your sheet** - A new row appears in your "Form Responses" tab with their name, answer, and timestamp
+5. **You can see it immediately** - Open your Google Sheet and check the Form Responses tab
+
+### How the System Knows Who to Remind vs. Thank
+
+The system is smart about tracking:
+
+**For Reminders:**
+- Looks for people where Status = "Sent" (they got the email)
+- Checks if their name is NOT in the Form Responses tab (they haven't responded)
+- Checks if ReminderSent is empty (they haven't gotten a reminder yet)
+- If all three are true → they get a reminder
+
+**For Thank Yous:**
+- Looks for people whose name IS in the Form Responses tab (they responded)
+- Matches their name to your master list to get their email
+- Checks if ThankYouSent is empty (they haven't gotten a thank you yet)
+- If all are true → they get a thank you email personalized to their response
+
+This way, the system never sends duplicate emails and always knows who needs what!
+
 ## Setup
 
 ### Prerequisites
