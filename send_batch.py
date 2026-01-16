@@ -7,6 +7,7 @@ in Google Sheets, and supports batch processing with configurable size.
 
 import argparse
 import os
+import re
 import smtplib
 from datetime import date
 from email.mime.multipart import MIMEMultipart
@@ -17,6 +18,130 @@ from dotenv import load_dotenv
 from oauth2client.service_account import ServiceAccountCredentials
 
 from email_generator import create_email_body, generate_form_url, load_config
+
+# Email validation regex pattern
+EMAIL_PATTERN = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+
+# Common test/suspicious domains
+SUSPICIOUS_DOMAINS = [
+    'example.com', 'example.org', 'test.com', 'localhost',
+    'invalid', 'fake.com', 'test.org', 'example.net'
+]
+
+
+def validate_email_format(email):
+    """
+    Validate email format using regex pattern.
+    
+    Checks:
+    - Contains exactly one @ symbol
+    - Has at least one . after the @ (in domain part)
+    - Local part (before @) is not empty
+    - Domain part (after @) is not empty
+    - No spaces in the email
+    - Matches standard email format pattern
+    
+    Args:
+        email (str): Email address to validate
+        
+    Returns:
+        tuple: (is_valid, error_message)
+            - is_valid (bool): True if email format is valid
+            - error_message (str): Error description if invalid, empty string if valid
+    """
+    if not email or not isinstance(email, str):
+        return False, "Email is empty or not a string"
+    
+    email = email.strip()
+    
+    # Check for spaces
+    if ' ' in email:
+        return False, "Email contains spaces"
+    
+    # Check for exactly one @ symbol
+    if email.count('@') != 1:
+        if email.count('@') == 0:
+            return False, "Email missing @ symbol"
+        else:
+            return False, "Email contains multiple @ symbols"
+    
+    # Split into local and domain parts
+    parts = email.split('@')
+    local_part = parts[0]
+    domain_part = parts[1]
+    
+    # Check local part is not empty
+    if not local_part:
+        return False, "Email missing local part (before @)"
+    
+    # Check domain part is not empty
+    if not domain_part:
+        return False, "Email missing domain part (after @)"
+    
+    # Check domain has at least one dot
+    if '.' not in domain_part:
+        return False, "Domain part missing dot (e.g., .com)"
+    
+    # Check domain has valid TLD (at least 2 characters after last dot)
+    domain_parts = domain_part.split('.')
+    if len(domain_parts[-1]) < 2:
+        return False, "Domain TLD too short (must be at least 2 characters)"
+    
+    # Use regex pattern to validate overall format
+    if not EMAIL_PATTERN.match(email):
+        return False, "Email format does not match standard pattern"
+    
+    return True, ""
+
+
+def is_suspicious_email(email):
+    """
+    Check if email matches suspicious/test patterns.
+    
+    Flags:
+    - Test domains: example.com, test.com, localhost, etc.
+    - Test patterns: test@test.com, admin@admin.com
+    - Repeated patterns: same string in local and domain parts
+    - Common fake domains
+    
+    Args:
+        email (str): Email address to check
+        
+    Returns:
+        tuple: (is_suspicious, reason)
+            - is_suspicious (bool): True if email matches suspicious patterns
+            - reason (str): Reason why it's suspicious, empty string if not suspicious
+    """
+    if not email or '@' not in email:
+        return False, ""
+    
+    email_lower = email.lower().strip()
+    parts = email_lower.split('@')
+    
+    if len(parts) != 2:
+        return False, ""
+    
+    local_part = parts[0]
+    domain_part = parts[1]
+    
+    # Check for test domains
+    for test_domain in SUSPICIOUS_DOMAINS:
+        if domain_part == test_domain or domain_part.endswith('.' + test_domain):
+            return True, f"Test domain: {test_domain}"
+    
+    # Check if local part equals domain part (e.g., test@test.com)
+    if local_part == domain_part.split('.')[0]:
+        return True, "Local part matches domain part"
+    
+    # Check if both parts contain "test"
+    if 'test' in local_part and 'test' in domain_part:
+        return True, "Contains 'test' in both local and domain parts"
+    
+    # Check for repeated patterns (e.g., abc@abc.com)
+    if local_part == domain_part.split('.')[0] and len(local_part) > 2:
+        return True, "Repeated pattern detected"
+    
+    return False, ""
 
 
 def main():
@@ -218,15 +343,22 @@ def main():
                         worksheet.update_acell(status_cell, f"Failed - Empty email address")
                     continue
                 
-                # Validate email format (basic check)
-                if '@' not in email_address:
-                    print(f"Row {row_index} ({name}): Invalid email format ({email_address}), skipping...")
+                # Validate email format (enhanced validation)
+                is_valid, error_msg = validate_email_format(email_address)
+                if not is_valid:
+                    print(f"Row {row_index} ({name}): Invalid email format ({email_address}) - {error_msg}, skipping...")
                     failed_count += 1
                     # Update status to indicate invalid email
                     if not args.dry_run:
                         status_cell = f'E{row_index}'
-                        worksheet.update_acell(status_cell, f"Failed - Invalid email format")
+                        worksheet.update_acell(status_cell, f"Failed - Invalid email format: {error_msg}")
                     continue
+                
+                # Check for suspicious patterns (warn but allow sending)
+                is_suspicious, suspicious_reason = is_suspicious_email(email_address)
+                if is_suspicious:
+                    print(f"Row {row_index} ({name}): Warning - Suspicious email pattern detected ({email_address}): {suspicious_reason}")
+                    # Note: We still allow sending, but warn the user
                 
                 print(f"Sending to: {name} ({email_address})...", end=' ', flush=True)
                 
